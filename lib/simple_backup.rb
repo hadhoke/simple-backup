@@ -10,6 +10,7 @@ module SimpleBackup
       @config = BackupConfig.new
   
       @bin_dir              = @config.bin_dir
+      @identifier           = @config.identifier
       @app_name             = @config.app_name
       @backup_dir           = @config.backup_dir
       @excluded_tables      = @config.excluded_tables
@@ -34,7 +35,11 @@ module SimpleBackup
     end
   
     def file_name()
-      file_name = "#{@database}-#{CLIENT}-#{Time.now.strftime('%Y%m%d-%H%M%S')}.backup"
+      identifier = '' 
+      if @identifier.present?
+        identifier = "-#{@identifier}"
+      end
+      file_name = "#{@database}#{identifier}-#{Time.now.strftime('%Y%m%d-%H%M%S')}.backup"
       unless @database.start_with?(@app_name)
         file_name.insert(0, "#{@app_name}-")
       end
