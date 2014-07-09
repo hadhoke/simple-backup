@@ -47,12 +47,17 @@ module SimpleBackup
     end
   
     def exe_path(exe_name)
+      binding.pry
       pg_path = @bin_dir || self.which(exe_name)
       if pg_path.nil?
         if Gem.win_platform?
-          path = Dir["#{ENV['ProgramFiles']}/PostgreSQL/*/bin/"]
-          path = Dir["#{ENV['ProgramFiles(x86)']}/PostgreSQL/*/bin/"] if ENV['ProgramFiles(x86)'].present?
-          pg_path = self.which(exe_name, path)
+          pg_path     = self.which(exe_name, Dir["#{ENV['ProgramFiles']}/PostgreSQL/*/bin/"].join(File::PATH_SEPARATOR))
+          pg_path_x86 = self.which(exe_name, Dir["#{ENV['ProgramFiles(x86)']}/PostgreSQL/*/bin/"].join(File::PATH_SEPARATOR)) if ENV['ProgramFiles(x86)'].present?
+
+          if pg_path.present? && pg_path_x86.present?
+            raise "More than one executable found when looking for #{exe_name}, specify witch use in config/backups.rb in bin_dir variable:\n  - #{pg_path}\n  - #{pg_path_x86}"
+          end
+          pg_path = pg_path.nil? ? pg_path_x86 : pg_path
         end
       end
       if pg_path.nil?
