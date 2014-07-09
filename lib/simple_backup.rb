@@ -47,7 +47,17 @@ module SimpleBackup
     end
   
     def exe_path(exe_name)
-      pg_path = exe_name
+      pg_path = @bin_dir || self.which(exe_name)
+      if pg_path.nil?
+        if Gem.win_platform?
+          path = Dir["#{ENV['ProgramFiles']}/PostgreSQL/*/bin/"]
+          path = Dir["#{ENV['ProgramFiles(x86)']}/PostgreSQL/*/bin/"] if ENV['ProgramFiles(x86)'].present?
+          pg_path = self.which(exe_name, path)
+        end
+      end
+      if pg_path.nil?
+        raise "Can find executable #{exe_name}"
+      end
       pg_path = File.join(@bin_dir, exe_name) if @bin_dir.present?
       pg_path.gsub("\\", "/") # Running the command with git bash can fail otherwise.
     end
@@ -139,6 +149,21 @@ module SimpleBackup
         end
         already_backup.push(date)
       end
+    end
+
+
+    # Cross-platform way of finding an executable in the $PATH.
+    #
+    #   which('ruby') #=> /usr/bin/ruby
+    def which(cmd, paths = ENV['PATH'])
+      exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
+      paths.split(File::PATH_SEPARATOR).each do |path|
+        exts.each { |ext|
+          exe = File.join(path, "#{cmd}#{ext}")
+          return exe if File.executable? exe
+        }
+      end
+      return nil
     end
   end
 end
